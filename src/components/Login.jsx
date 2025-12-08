@@ -26,35 +26,55 @@ export default function Login() {
   }
 
   return (
-    <div className="auth-container">
-      <div className="auth-card">
-        <h2>Login</h2>
-        {error && <div className="error-message">{error}</div>}
+    <div className="flex justify-center items-center min-h-screen bg-gray-50">
+      <div className="w-full max-w-md p-8 bg-white shadow-lg rounded-lg">
+        <h2 className="text-2xl font-semibold text-center text-gray-800 mb-6">Login</h2>
+
+        {error && (
+          <div className="text-red-500 text-sm text-center mb-4">
+            {error}
+          </div>
+        )}
+
         <form onSubmit={handleSubmit}>
-          <div className="form-group">
-            <label>Email</label>
+          <div className="mb-4">
+            <label htmlFor="email" className="block text-gray-700 font-medium mb-2">Email</label>
             <input
               type="email"
+              id="email"
               value={email}
               onChange={(e) => setEmail(e.target.value)}
               required
+              className="w-full p-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
             />
           </div>
-          <div className="form-group">
-            <label>Password</label>
+
+          <div className="mb-6">
+            <label htmlFor="password" className="block text-gray-700 font-medium mb-2">Password</label>
             <input
               type="password"
+              id="password"
               value={password}
               onChange={(e) => setPassword(e.target.value)}
               required
+              className="w-full p-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
             />
           </div>
-          <button type="submit" disabled={loading} className="btn-primary">
+
+          <button
+            type="submit"
+            disabled={loading}
+            className="w-full py-3 bg-blue-600 text-white font-semibold rounded-lg hover:bg-blue-700 focus:outline-none disabled:bg-gray-400"
+          >
             {loading ? 'Logging in...' : 'Login'}
           </button>
         </form>
-        <p className="auth-link">
-          Don't have an account? <Link to="/signup">Sign up</Link>
+
+        <p className="text-center text-gray-600 mt-4">
+          Don't have an account?{' '}
+          <Link to="/signup" className="text-blue-600 hover:underline">
+            Sign up
+          </Link>
         </p>
       </div>
     </div>
