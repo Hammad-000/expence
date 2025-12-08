@@ -27,8 +27,8 @@ export default function Login() {
 
   return (
     <div className="flex justify-center items-center min-h-screen bg-gray-50">
-      <div className="w-full max-w-md p-8 bg-white shadow-lg rounded-lg">
-        <h2 className="text-2xl font-semibold text-center text-gray-800 mb-6">Login</h2>
+      <div className="bg-gradient-to-r from-blue-50 to-blue-200 rounded-2xl p-6 shadow-sm border border-blue-200 max-w-md w-full">
+        <h2 className="text-2xl font-semibold text-center cursor-pointer text-gray-800 mb-6">Login</h2>
 
         {error && (
           <div className="text-red-500 text-sm text-center mb-4">
