@@ -26,7 +26,7 @@ export default function Login() {
   }
 
   return (
-    <div className="flex justify-center items-center min-h-screen bg-gray-50">
+    <div className="flex justify-center items-center min-h-screen bg-gray-200">
       <div className="bg-gradient-to-r from-blue-50 to-blue-200 rounded-2xl p-6 shadow-sm border border-blue-200 max-w-md w-full">
         <h2 className="text-2xl font-semibold text-center cursor-pointer text-gray-800 mb-6">Login</h2>
 
