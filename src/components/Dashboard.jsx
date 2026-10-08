@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import { useAuth } from '../context/AuthContext';
 import { useNavigate } from 'react-router-dom';
 import {
@@ -10,26 +10,40 @@ import {
   deleteDoc,
   doc,
 } from 'firebase/firestore';
-import { db } from '../firebase/config';
+import { db } from '../firebase';
 import TransactionForm from '../components/TransactionForm';
 import TransactionList from '../components/TransactionList';
-import { 
-  LogOut, 
-  DollarSign, 
-  TrendingUp, 
-  TrendingDown, 
-  Wallet, 
-  Menu, 
-  X,
-  User 
+import {
+  LogOut,
+  DollarSign,
+  TrendingUp,
+  TrendingDown,
+  Wallet,
+  Plus,
+  Receipt,
+  PiggyBank,
+  Sparkles,
 } from 'lucide-react';
+
+const money = (n) =>
+  new Intl.NumberFormat('en-US', {
+    style: 'currency',
+    currency: 'USD',
+    minimumFractionDigits: 2,
+  }).format(n);
+
+const greeting = () => {
+  const h = new Date().getHours();
+  if (h < 12) return 'Good morning';
+  if (h < 18) return 'Good afternoon';
+  return 'Good evening';
+};
 
 export default function Dashboard() {
   const { currentUser, logout } = useAuth();
   const navigate = useNavigate();
   const [transactions, setTransactions] = useState([]);
   const [loading, setLoading] = useState(true);
-  const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
 
   useEffect(() => {
     if (!currentUser) return;
@@ -40,11 +54,9 @@ export default function Dashboard() {
     );
 
     const unsubscribe = onSnapshot(q, (snapshot) => {
-      const transactionsData = snapshot.docs.map((doc) => ({
-        id: doc.id,
-        ...doc.data()
-      }));
-      setTransactions(transactionsData);
+      setTransactions(
+        snapshot.docs.map((d) => ({ id: d.id, ...d.data() }))
+      );
       setLoading(false);
     });
 
@@ -56,7 +68,7 @@ export default function Dashboard() {
       await addDoc(collection(db, 'transactions'), {
         ...transaction,
         userId: currentUser.uid,
-        createdAt: new Date()
+        createdAt: new Date(),
       });
     } catch (error) {
       console.error('Error adding transaction:', error);
@@ -80,313 +92,308 @@ export default function Dashboard() {
     }
   }
 
-  const totalIncome = transactions
-    .filter((t) => t.type === 'income')
-    .reduce((sum, t) => sum + parseFloat(t.amount || 0), 0);
+  const { totalIncome, totalExpense, balance, spentPct } = useMemo(() => {
+    const inc = transactions
+      .filter((t) => t.type === 'income')
+      .reduce((s, t) => s + parseFloat(t.amount || 0), 0);
+    const exp = transactions
+      .filter((t) => t.type === 'expense')
+      .reduce((s, t) => s + parseFloat(t.amount || 0), 0);
+    return {
+      totalIncome: inc,
+      totalExpense: exp,
+      balance: inc - exp,
+      spentPct: inc > 0 ? Math.min((exp / inc) * 100, 100) : exp > 0 ? 100 : 0,
+    };
+  }, [transactions]);
 
-  const totalExpense = transactions
-    .filter((t) => t.type === 'expense')
-    .reduce((sum, t) => sum + parseFloat(t.amount || 0), 0);
-
-  const balance = totalIncome - totalExpense;
+  const userName = currentUser?.email?.split('@')[0] || 'there';
+  const initial = userName.charAt(0).toUpperCase();
+  const positive = balance >= 0;
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-blue-50 to-gray-100 flex items-center justify-center">
-        <div className="text-center">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto"></div>
-          <p className="mt-4 text-gray-600">Loading your Expenses ...</p>
+      <div className="min-h-screen bg-slate-50 flex items-center justify-center">
+        <div className="flex flex-col items-center gap-4">
+          <div className="relative h-14 w-14">
+            <div className="absolute inset-0 rounded-full border-4 border-indigo-100" />
+            <div className="absolute inset-0 rounded-full border-4 border-indigo-600 border-t-transparent animate-spin" />
+          </div>
+          <p className="text-slate-500 text-sm font-medium">
+            Loading your expenses...
+          </p>
         </div>
       </div>
     );
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-blue-50 to-gray-100">
+    <div className="relative min-h-screen bg-slate-50 overflow-x-hidden">
+      {/* Decorative background blobs */}
+      <div className="pointer-events-none absolute inset-0 -z-0 overflow-hidden">
+        <div className="absolute -top-32 -left-32 h-96 w-96 rounded-full bg-indigo-300/30 blur-3xl" />
+        <div className="absolute top-40 -right-32 h-96 w-96 rounded-full bg-fuchsia-300/25 blur-3xl" />
+        <div className="absolute bottom-0 left-1/3 h-80 w-80 rounded-full bg-emerald-200/30 blur-3xl" />
+      </div>
 
-      <header className="bg-white shadow-sm border-b sticky top-0 z-50">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="flex justify-between items-center h-16">
-
-            <div className="flex items-center space-x-3">
-              <button
-                className="lg:hidden p-2 rounded-md text-gray-500 hover:text-gray-700 hover:bg-gray-100"
-                onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
-              >
-                {mobileMenuOpen ? (
-                  <X className="h-6 w-6" />
-                ) : (
-                  <Menu className="h-6 w-6" />
-                )}
-              </button>
-              
-              <div className="flex items-center space-x-3">
-                <div className="bg-blue-600 p-2 rounded-lg">
-                  <DollarSign className="h-6 w-6 text-white" />
-                </div>
-                <h1 className="text-xl md:text-2xl font-bold text-gray-900">
-                  Expenses Tracker
-                </h1>
-              </div>
+      {/* Header */}
+      <header className="sticky top-0 z-40 border-b border-white/60 bg-white/70 backdrop-blur-xl">
+        <div className="mx-auto flex h-16 max-w-7xl items-center justify-between px-4 sm:px-6 lg:px-8">
+          <div className="flex items-center gap-3">
+            <div className="grid h-10 w-10 place-items-center rounded-xl bg-gradient-to-br from-indigo-600 to-fuchsia-600 shadow-lg shadow-indigo-500/30">
+              <DollarSign className="h-5 w-5 text-white" />
             </div>
-            
- 
-            <div className="hidden lg:flex items-center space-x-6">
-            
-              <div className="flex items-center space-x-3">
-                <div className="h-8 w-8 rounded-full bg-blue-100 flex items-center justify-center">
-                  <User className="h-5 w-5 text-blue-600" />
-                </div>
-                <div className="text-right">
-                  <p className="text-sm text-gray-500 hidden md:block">Welcome back</p>
-                  <p className="font-medium text-gray-900 truncate max-w-[180px] md:max-w-xs">
-                    {currentUser?.email}
-                  </p>
-                </div>
-              </div>
-              
- 
-              <div className="hidden xl:flex items-center space-x-4 border-l pl-6">
-                <div className="text-sm">
-                  <p className="text-gray-500">Income</p>
-                  <p className="font-semibold text-green-600">${totalIncome.toFixed(2)}</p>
-                </div>
-                <div className="text-sm">
-                  <p className="text-gray-500">Expense</p>
-                  <p className="font-semibold text-red-600">${totalExpense.toFixed(2)}</p>
-                </div>
-                <div className="text-sm">
-                  <p className="text-gray-500">Balance</p>
-                  <p className={`font-semibold ${balance >= 0 ? 'text-blue-600' : 'text-amber-600'}`}>
-                    ${balance.toFixed(2)}
-                  </p>
-                </div>
-              </div>
-              
-              {/* Logout Button - Desktop */}
-              <button
-                onClick={handleLogout}
-                className="hidden md:inline-flex items-center px-4 py-2 cursor-pointer border border-red-300 rounded-lg shadow-sm text-sm font-medium text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 transition-colors duration-200"
-              >
-                <LogOut className="h-4 w-4 mr-2" />
-                Logout
-              </button>
-              
-              {/* Mobile Logout Button */}
-              <button
-                onClick={handleLogout}
-                className="md:hidden p-2 rounded-lg border border-red-300 text-red-600 hover:bg-red-50 transition-colors"
-              >
-                <LogOut className="h-5 w-5" />
-              </button>
-            </div>
+            <h1 className="text-lg font-extrabold tracking-tight text-slate-900 sm:text-xl">
+              Spend<span className="text-indigo-600">Wise</span>
+            </h1>
           </div>
-        </div>
-        
 
-        <div className={`lg:hidden ${mobileMenuOpen ? 'block' : 'hidden'}`}>
-          <div className="px-4 py-3 space-y-4 bg-white border-t">
-
-            <div className="flex items-center space-x-3 p-2 rounded-lg bg-gray-50">
-              <div className="h-10 w-10 rounded-full bg-blue-100 flex items-center justify-center">
-                <User className="h-6 w-6 text-blue-600" />
+          <div className="flex items-center gap-2 sm:gap-4">
+            <div className="flex items-center gap-3">
+              <div className="grid h-9 w-9 place-items-center rounded-full bg-gradient-to-br from-indigo-500 to-fuchsia-500 text-sm font-bold text-white ring-2 ring-white">
+                {initial}
               </div>
-              <div>
-                <p className="text-sm text-gray-500">Signed in as</p>
-                <p className="font-medium text-gray-900 truncate">{currentUser?.email}</p>
-              </div>
-            </div>
-            
-
-            <div className="grid grid-cols-3 gap-3 p-2 bg-gray-50 rounded-lg">
-              <div className="text-center">
-                <p className="text-xs text-gray-500">Income</p>
-                <p className="font-semibold text-green-600 text-sm">${totalIncome.toFixed(2)}</p>
-              </div>
-              <div className="text-center">
-                <p className="text-xs text-gray-500">Expense</p>
-                <p className="font-semibold text-red-600 text-sm">${totalExpense.toFixed(2)}</p>
-              </div>
-              <div className="text-center">
-                <p className="text-xs text-gray-500">Balance</p>
-                <p className={`font-semibold text-sm ${balance >= 0 ? 'text-blue-600' : 'text-amber-600'}`}>
-                  ${balance.toFixed(2)}
+              <div className="hidden text-left sm:block">
+                <p className="text-[11px] uppercase tracking-wider text-slate-400">
+                  Signed in
+                </p>
+                <p className="max-w-[200px] truncate text-sm font-semibold text-slate-800">
+                  {currentUser?.email}
                 </p>
               </div>
             </div>
-            
 
-            <div className="p-2 bg-gray-50 rounded-lg">
-              <p className="text-sm text-gray-700">
-                <span className="font-semibold">{transactions.length}</span> total transactions
-              </p>
-            </div>
-            
-            {/* Full Logout Button Mobile */}
             <button
               onClick={handleLogout}
-              className="w-full flex items-center justify-center px-4 py-3 cursor-pointer border border-red-300 rounded-lg text-sm font-medium text-red-700 bg-red-50 hover:bg-red-100 transition-colors"
+              className="inline-flex items-center gap-2 rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm font-semibold text-slate-700 shadow-sm transition hover:border-rose-200 hover:bg-rose-50 hover:text-rose-600 active:scale-95 sm:px-4"
+              aria-label="Logout"
             >
-              <LogOut className="h-4 w-4 mr-2" />
-              Logout
+              <LogOut className="h-4 w-4" />
+              <span className="hidden sm:inline">Logout</span>
             </button>
           </div>
         </div>
       </header>
 
-      <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
- 
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
-          <div className="bg-gradient-to-r from-green-50 to-green-100 rounded-2xl p-6 shadow-sm border border-green-200">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm font-medium text-green-700 mb-1">Total Income</p>
-                <p className="text-3xl font-bold text-green-900">${totalIncome.toFixed(2)}</p>
-                <p className="text-xs text-green-600 mt-2">All time earnings</p>
+      <main className="relative z-10 mx-auto max-w-7xl px-4 pb-28 pt-6 sm:px-6 sm:pt-8 lg:px-8 lg:pb-10">
+        {/* Hero balance card */}
+        <section className="relative overflow-hidden rounded-3xl bg-gradient-to-br from-slate-900 via-indigo-950 to-slate-900 p-6 text-white shadow-2xl shadow-indigo-900/20 sm:p-8">
+          <div className="absolute -right-16 -top-16 h-64 w-64 rounded-full bg-indigo-500/30 blur-3xl" />
+          <div className="absolute -bottom-20 left-10 h-56 w-56 rounded-full bg-fuchsia-500/20 blur-3xl" />
+
+          <div className="relative flex flex-col gap-8 lg:flex-row lg:items-end lg:justify-between">
+            <div>
+              <p className="flex items-center gap-2 text-sm text-indigo-200">
+                <Sparkles className="h-4 w-4" />
+                {greeting()}, <span className="font-semibold capitalize">{userName}</span>
+              </p>
+              <p className="mt-4 text-xs font-medium uppercase tracking-widest text-slate-400">
+                Total Balance
+              </p>
+              <p
+                className={`mt-1 text-4xl font-extrabold tracking-tight sm:text-5xl lg:text-6xl ${
+                  positive ? 'text-white' : 'text-amber-300'
+                }`}
+              >
+                {money(balance)}
+              </p>
+              <span
+                className={`mt-3 inline-flex items-center gap-1.5 rounded-full px-3 py-1 text-xs font-semibold ${
+                  positive
+                    ? 'bg-emerald-400/15 text-emerald-300'
+                    : 'bg-amber-400/15 text-amber-300'
+                }`}
+              >
+                {positive ? (
+                  <TrendingUp className="h-3.5 w-3.5" />
+                ) : (
+                  <TrendingDown className="h-3.5 w-3.5" />
+                )}
+                {positive ? 'You are in the green' : 'Spending exceeds income'}
+              </span>
+            </div>
+
+            {/* Spending meter */}
+            <div className="w-full lg:max-w-sm">
+              <div className="mb-2 flex items-center justify-between text-xs text-slate-300">
+                <span>Income spent</span>
+                <span className="font-bold text-white">{spentPct.toFixed(0)}%</span>
               </div>
-              <div className="bg-green-500 p-3 rounded-full">
-                <TrendingUp className="h-6 w-6 text-white" />
+              <div className="h-3 w-full overflow-hidden rounded-full bg-white/10">
+                <div
+                  className={`h-full rounded-full transition-all duration-700 ${
+                    spentPct < 60
+                      ? 'bg-gradient-to-r from-emerald-400 to-teal-300'
+                      : spentPct < 85
+                      ? 'bg-gradient-to-r from-amber-400 to-orange-300'
+                      : 'bg-gradient-to-r from-rose-500 to-pink-400'
+                  }`}
+                  style={{ width: `${spentPct}%` }}
+                />
+              </div>
+              <div className="mt-4 grid grid-cols-2 gap-3">
+                <div className="rounded-2xl bg-white/5 p-3 ring-1 ring-white/10">
+                  <p className="text-[11px] text-slate-400">Income</p>
+                  <p className="text-sm font-bold text-emerald-300 sm:text-base">
+                    {money(totalIncome)}
+                  </p>
+                </div>
+                <div className="rounded-2xl bg-white/5 p-3 ring-1 ring-white/10">
+                  <p className="text-[11px] text-slate-400">Expense</p>
+                  <p className="text-sm font-bold text-rose-300 sm:text-base">
+                    {money(totalExpense)}
+                  </p>
+                </div>
               </div>
             </div>
           </div>
+        </section>
 
-          <div className="bg-gradient-to-r from-red-50 to-red-100 rounded-2xl p-6 shadow-sm border border-red-200">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm font-medium text-red-700 mb-1">Total Expense</p>
-                <p className="text-3xl font-bold text-red-900">${totalExpense.toFixed(2)}</p>
-                <p className="text-xs text-red-600 mt-2">All time spendings</p>
-              </div>
-              <div className="bg-red-500 p-3 rounded-full">
-                <TrendingDown className="h-6 w-6 text-white" />
-              </div>
-            </div>
-          </div>
+        {/* Stat cards */}
+        <section className="mt-6 grid grid-cols-1 gap-4 sm:grid-cols-3">
+          <StatCard
+            label="Total Income"
+            value={money(totalIncome)}
+            hint="All time earnings"
+            icon={<TrendingUp className="h-5 w-5" />}
+            tone="emerald"
+          />
+          <StatCard
+            label="Total Expense"
+            value={money(totalExpense)}
+            hint="All time spendings"
+            icon={<TrendingDown className="h-5 w-5" />}
+            tone="rose"
+          />
+          <StatCard
+            label="Transactions"
+            value={transactions.length}
+            hint={positive ? 'Keep saving!' : 'Watch your budget'}
+            icon={<Receipt className="h-5 w-5" />}
+            tone="indigo"
+          />
+        </section>
 
-          <div className={`rounded-2xl p-6 shadow-sm border ${balance >= 0 ? 'bg-gradient-to-r from-blue-50 to-blue-100 border-blue-200' : 'bg-gradient-to-r from-amber-50 to-amber-100 border-amber-200'}`}>
-            <div className="flex items-center justify-between">
-              <div>
-                <p className={`text-sm font-medium ${balance >= 0 ? 'text-blue-700' : 'text-amber-700'} mb-1`}>Balance</p>
-                <p className={`text-3xl font-bold ${balance >= 0 ? 'text-blue-900' : 'text-amber-900'}`}>
-                  ${balance.toFixed(2)}
-                </p>
-                <p className={`text-xs ${balance >= 0 ? 'text-blue-600' : 'text-amber-600'} mt-2`}>
-                  {balance >= 0 ? 'Positive balance' : 'Negative balance'}
-                </p>
+        {/* Form + List */}
+        <section className="mt-6 grid grid-cols-1 gap-6 lg:grid-cols-3">
+          <div id="add-form" className="scroll-mt-24 lg:col-span-1">
+            <div className="rounded-3xl border border-white bg-white/80 p-6 shadow-xl shadow-slate-200/60 backdrop-blur lg:sticky lg:top-24">
+              <div className="mb-5 flex items-center gap-3">
+                <div className="grid h-10 w-10 place-items-center rounded-xl bg-indigo-50 text-indigo-600">
+                  <Plus className="h-5 w-5" />
+                </div>
+                <div>
+                  <h2 className="text-lg font-bold text-slate-900">
+                    New Transaction
+                  </h2>
+                  <p className="text-xs text-slate-500">Add income or expense</p>
+                </div>
               </div>
-              <div className={`p-3 rounded-full ${balance >= 0 ? 'bg-blue-500' : 'bg-amber-500'}`}>
-                <Wallet className="h-6 w-6 text-white" />
-              </div>
-            </div>
-          </div>
-        </div>
-
-
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-     
-          <div className="lg:col-span-1">
-            <div className="bg-white rounded-2xl shadow-sm border p-6 lg:sticky lg:top-24">
-              <h2 className="text-xl font-bold text-gray-900 mb-6">Add New Transaction</h2>
               <TransactionForm onAdd={handleAddTransaction} />
             </div>
           </div>
 
-     
           <div className="lg:col-span-2">
-            <div className="bg-white rounded-2xl shadow-sm border overflow-hidden">
-              <div className="px-6 py-5 border-b">
-                <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between">
-                  <div>
-                    <h2 className="text-xl font-bold text-gray-900">Recent Transactions</h2>
-                    <p className="text-sm text-gray-500 mt-1">
-                      {transactions.length} transaction{transactions.length !== 1 ? 's' : ''} total
-                    </p>
-                  </div>
-                  <div className="mt-2 sm:mt-0">
-                    <div className="flex items-center space-x-2">
-                      <div className="h-3 w-3 rounded-full bg-green-500"></div>
-                      <span className="text-xs text-gray-600">Income</span>
-                      <div className="h-3 w-3 rounded-full bg-red-500 ml-4"></div>
-                      <span className="text-xs text-gray-600">Expense</span>
-                    </div>
-                  </div>
+            <div className="overflow-hidden rounded-3xl border border-white bg-white/80 shadow-xl shadow-slate-200/60 backdrop-blur">
+              <div className="flex flex-col gap-3 border-b border-slate-100 px-6 py-5 sm:flex-row sm:items-center sm:justify-between">
+                <div>
+                  <h2 className="text-lg font-bold text-slate-900">
+                    Recent Transactions
+                  </h2>
+                  <p className="text-xs text-slate-500">
+                    {transactions.length} transaction
+                    {transactions.length !== 1 ? 's' : ''} total
+                  </p>
+                </div>
+                <div className="flex items-center gap-4 text-xs font-medium text-slate-600">
+                  <span className="flex items-center gap-1.5">
+                    <span className="h-2.5 w-2.5 rounded-full bg-emerald-500" />
+                    Income
+                  </span>
+                  <span className="flex items-center gap-1.5">
+                    <span className="h-2.5 w-2.5 rounded-full bg-rose-500" />
+                    Expense
+                  </span>
                 </div>
               </div>
-              <div className="overflow-x-auto m-4">
-                <TransactionList
-                  transactions={transactions}
-                  onDelete={handleDeleteTransaction}
-                />
-              </div>
-              
-              {transactions.length === 0 && (
-                <div className="text-center py-12 px-4">
-                  <div className="mx-auto h-12 w-12 text-gray-400 mb-4">
-                    <DollarSign className="h-12 w-12" />
+
+              {transactions.length > 0 ? (
+                <div className="overflow-x-auto p-3 sm:p-4">
+                  <TransactionList
+                    transactions={transactions}
+                    onDelete={handleDeleteTransaction}
+                  />
+                </div>
+              ) : (
+                <div className="px-4 py-16 text-center">
+                  <div className="mx-auto mb-4 grid h-16 w-16 place-items-center rounded-2xl bg-gradient-to-br from-indigo-50 to-fuchsia-50 text-indigo-500">
+                    <PiggyBank className="h-8 w-8" />
                   </div>
-                  <h3 className="text-lg font-medium text-gray-900 mb-2">No transactions yet</h3>
-                  <p className="text-gray-500 max-w-sm mx-auto">
-                    Add your first transaction using the form to start tracking your finances
+                  <h3 className="text-lg font-bold text-slate-900">
+                    No transactions yet
+                  </h3>
+                  <p className="mx-auto mt-1 max-w-xs text-sm text-slate-500">
+                    Add your first transaction to start tracking your finances.
                   </p>
                 </div>
               )}
             </div>
           </div>
-        </div>
+        </section>
       </main>
 
-    
-      <footer className="hidden md:block mt-8 border-t bg-white py-4">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="flex flex-col md:flex-row justify-between items-center text-sm text-gray-500">
-            <p>Total Transactions: {transactions.length}</p>
-            <p>Income/Expense Ratio: {(totalIncome > 0 ? (totalExpense / totalIncome * 100).toFixed(1) : 0)}%</p>
-            <p>Last updated: {new Date().toLocaleDateString()}</p>
-          </div>
-        </div>
-      </footer>
+      {/* Mobile floating add button */}
+      <a
+        href="#add-form"
+        className="fixed bottom-5 right-5 z-50 grid h-14 w-14 place-items-center rounded-full bg-gradient-to-br from-indigo-600 to-fuchsia-600 text-white shadow-xl shadow-indigo-500/40 transition active:scale-90 lg:hidden"
+        aria-label="Add transaction"
+      >
+        <Plus className="h-6 w-6" />
+      </a>
 
-   
-      <div className="md:hidden fixed bottom-0 left-0 right-0 bg-white border-t shadow-lg">
-        <div className="flex justify-around py-3">
-          <div className="text-center">
-            <div className="mx-auto w-8 h-8 rounded-full bg-green-100 flex items-center justify-center mb-1">
-              <TrendingUp className="h-4 w-4 text-green-600" />
-            </div>
-            <p className="text-xs text-gray-700">Income</p>
-            <p className="text-xs font-semibold text-green-600">${totalIncome.toFixed(2)}</p>
-          </div>
-          
-          <div className="text-center">
-            <div className="mx-auto w-8 h-8 rounded-full bg-red-100 flex items-center justify-center mb-1">
-              <TrendingDown className="h-4 w-4 text-red-600" />
-            </div>
-            <p className="text-xs text-gray-700">Expense</p>
-            <p className="text-xs font-semibold text-red-600">${totalExpense.toFixed(2)}</p>
-          </div>
-          
-          <div className="text-center">
-            <div className={`mx-auto w-8 h-8 rounded-full ${balance >= 0 ? 'bg-blue-100' : 'bg-amber-100'} flex items-center justify-center mb-1`}>
-              <Wallet className={`h-4 w-4 ${balance >= 0 ? 'text-blue-600' : 'text-amber-600'}`} />
-            </div>
-            <p className="text-xs text-gray-700">Balance</p>
-            <p className={`text-xs font-semibold ${balance >= 0 ? 'text-blue-600' : 'text-amber-600'}`}>
-              ${balance.toFixed(2)}
-            </p>
-          </div>
-          
-          <div className="text-center">
-            <div className="mx-auto w-8 h-8 rounded-full bg-gray-100 flex items-center justify-center mb-1">
-              <DollarSign className="h-4 w-4 text-gray-600" />
-            </div>
-            <p className="text-xs text-gray-700">Total</p>
-            <p className="text-xs font-semibold text-gray-700">{transactions.length}</p>
-          </div>
+      {/* Mobile quick stats bar */}
+      <div className="fixed inset-x-3 bottom-4 z-40 flex items-center justify-around rounded-2xl border border-white/70 bg-white/85 px-3 py-2.5 shadow-xl shadow-slate-300/50 backdrop-blur-xl sm:hidden"
+           style={{ right: '5.25rem' }}>
+        <MiniStat icon={<TrendingUp className="h-3.5 w-3.5" />} color="text-emerald-600" value={money(totalIncome)} />
+        <MiniStat icon={<TrendingDown className="h-3.5 w-3.5" />} color="text-rose-600" value={money(totalExpense)} />
+        <MiniStat icon={<Wallet className="h-3.5 w-3.5" />} color={positive ? 'text-indigo-600' : 'text-amber-600'} value={money(balance)} />
+      </div>
+    </div>
+  );
+}
+
+const tones = {
+  emerald: { bg: 'bg-emerald-50', icon: 'bg-emerald-500', text: 'text-emerald-600' },
+  rose: { bg: 'bg-rose-50', icon: 'bg-rose-500', text: 'text-rose-600' },
+  indigo: { bg: 'bg-indigo-50', icon: 'bg-indigo-500', text: 'text-indigo-600' },
+};
+
+function StatCard({ label, value, hint, icon, tone }) {
+  const t = tones[tone];
+  return (
+    <div className="group relative overflow-hidden rounded-2xl border border-white bg-white/80 p-5 shadow-lg shadow-slate-200/60 backdrop-blur transition duration-300 hover:-translate-y-1 hover:shadow-xl">
+      <div className={`absolute -right-6 -top-6 h-24 w-24 rounded-full ${t.bg} transition group-hover:scale-125`} />
+      <div className="relative flex items-start justify-between">
+        <div>
+          <p className="text-sm font-medium text-slate-500">{label}</p>
+          <p className="mt-1 text-2xl font-extrabold text-slate-900 sm:text-3xl">
+            {value}
+          </p>
+          <p className={`mt-1 text-xs font-medium ${t.text}`}>{hint}</p>
+        </div>
+        <div className={`grid h-11 w-11 place-items-center rounded-xl text-white shadow-md ${t.icon}`}>
+          {icon}
         </div>
       </div>
-      
-     
-      <div className="pb-16 md:pb-0"></div>
+    </div>
+  );
+}
+
+function MiniStat({ icon, color, value }) {
+  return (
+    <div className="flex items-center gap-1.5">
+      <span className={color}>{icon}</span>
+      <span className={`text-xs font-bold ${color}`}>{value}</span>
     </div>
   );
 }
