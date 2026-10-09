@@ -1,200 +1,203 @@
+// src/components/TransactionForm.jsx
 import { useState } from 'react';
-import { PlusCircle, DollarSign, FileText, Tag } from 'lucide-react';
+import {
+  PlusCircle,
+  DollarSign,
+  FileText,
+  Tag,
+  TrendingUp,
+  TrendingDown,
+  AlertCircle,
+} from 'lucide-react';
+
+const categories = {
+  income: ['Salary', 'Freelance', 'Investment', 'Other'],
+  expense: ['Food', 'Transport', 'Shopping', 'Bills', 'Entertainment', 'Other'],
+};
+
+const labelClass =
+  'mb-2 flex items-center gap-2 text-sm font-semibold text-slate-700 dark:text-slate-300';
+
+const inputClass =
+  'w-full rounded-xl border border-slate-200 bg-white/80 py-3 pl-11 pr-4 text-sm text-slate-900 placeholder-slate-400 shadow-sm outline-none transition focus:border-indigo-500 focus:ring-4 focus:ring-indigo-500/15 dark:border-slate-700 dark:bg-slate-800/60 dark:text-white dark:placeholder-slate-500';
 
 export default function TransactionForm({ onAdd }) {
   const [description, setDescription] = useState('');
   const [amount, setAmount] = useState('');
   const [type, setType] = useState('expense');
   const [category, setCategory] = useState('');
+  const [error, setError] = useState('');
 
-  const categories = {
-    income: ['Salary', 'Freelance', 'Investment', 'Other'],
-    expense: ['Food', 'Transport', 'Shopping', 'Bills', 'Entertainment', 'Other']
-  };
+  const isIncome = type === 'income';
 
   function handleSubmit(e) {
     e.preventDefault();
 
-    if (!description || !amount || !category) {
-      alert('Please fill in all fields');
+    if (!description.trim() || !amount || !category) {
+      setError('Please fill in all fields and pick a category.');
       return;
     }
 
+    setError('');
     onAdd({
-      description,
+      description: description.trim(),
       amount: parseFloat(amount),
       type,
-      category
+      category,
     });
 
-    // Reset form
     setDescription('');
     setAmount('');
     setCategory('');
   }
 
+  function switchType(next) {
+    setType(next);
+    setCategory('');
+    setError('');
+  }
+
   return (
-    <form onSubmit={handleSubmit} className="space-y-6">
-      {/* Transaction Type Selector */}
+    <form onSubmit={handleSubmit} className="space-y-5">
+      {error && (
+        <div className="flex items-start gap-2 rounded-xl border border-rose-200 bg-rose-50 p-3 text-sm text-rose-700 dark:border-rose-500/30 dark:bg-rose-500/10 dark:text-rose-300">
+          <AlertCircle className="mt-0.5 h-4 w-4 shrink-0" />
+          <span>{error}</span>
+        </div>
+      )}
+
+      {/* Type selector */}
       <div>
-        <label className="block text-sm font-medium text-gray-700 mb-3">
-          Transaction Type
-        </label>
-        <div className="grid grid-cols-2 gap-3">
+        <label className={labelClass}>Transaction Type</label>
+        <div className="grid grid-cols-2 gap-1.5 rounded-2xl bg-slate-100 p-1.5 dark:bg-slate-800/80">
           <button
             type="button"
-            onClick={() => {
-              setType('expense');
-              setCategory('');
-            }}
-            className={`flex items-center justify-center p-4 rounded-xl border-2 transition-all duration-200 ${
-              type === 'expense'
-                ? 'border-red-500 bg-red-50 text-red-700'
-                : 'border-gray-200 bg-white text-gray-700 hover:border-gray-300'
+            onClick={() => switchType('expense')}
+            className={`flex items-center justify-center gap-2 rounded-xl py-3 text-sm font-semibold transition-all duration-200 ${
+              !isIncome
+                ? 'bg-white text-rose-600 shadow-md dark:bg-slate-700 dark:text-rose-300'
+                : 'text-slate-500 hover:text-slate-700 dark:text-slate-400 dark:hover:text-slate-200'
             }`}
           >
-            <div className="text-center">
-              <div className={`text-lg font-semibold ${type === 'expense' ? 'text-red-600' : 'text-gray-600'}`}>
-                Expense
-              </div>
-              <div className="text-sm mt-1">Money Out</div>
-            </div>
+            <TrendingDown className="h-4 w-4" />
+            Expense
           </button>
-          
           <button
             type="button"
-            onClick={() => {
-              setType('income');
-              setCategory('');
-            }}
-            className={`flex items-center justify-center p-4 rounded-xl border-2 transition-all duration-200 ${
-              type === 'income'
-                ? 'border-green-500 bg-green-50 text-green-700'
-                : 'border-gray-200 bg-white text-gray-700 hover:border-gray-300'
+            onClick={() => switchType('income')}
+            className={`flex items-center justify-center gap-2 rounded-xl py-3 text-sm font-semibold transition-all duration-200 ${
+              isIncome
+                ? 'bg-white text-emerald-600 shadow-md dark:bg-slate-700 dark:text-emerald-300'
+                : 'text-slate-500 hover:text-slate-700 dark:text-slate-400 dark:hover:text-slate-200'
             }`}
           >
-            <div className="text-center">
-              <div className={`text-lg font-semibold ${type === 'income' ? 'text-green-600' : 'text-gray-600'}`}>
-                Income
-              </div>
-              <div className="text-sm mt-1">Money In</div>
-            </div>
+            <TrendingUp className="h-4 w-4" />
+            Income
           </button>
         </div>
       </div>
 
-      {/* Description Field */}
+      {/* Description */}
       <div>
-        <label className="block text-sm font-medium text-gray-700 mb-2">
-          <div className="flex items-center">
-            <FileText className="h-4 w-4 mr-2" />
-            Description
-          </div>
-        </label>
+        <label htmlFor="description" className={labelClass}>Description</label>
         <div className="relative">
+          <FileText className="pointer-events-none absolute left-4 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
           <input
+            id="description"
             type="text"
             value={description}
             onChange={(e) => setDescription(e.target.value)}
-            placeholder="Enter transaction description"
-            className="w-full px-4 py-3 pl-11 border border-gray-300 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors duration-200"
+            placeholder="e.g. Lunch at cafe"
+            className={inputClass}
             required
           />
-          <div className="absolute left-3 top-3.5 text-gray-400">
-            <FileText className="h-5 w-5" />
-          </div>
         </div>
       </div>
 
-      {/* Amount Field */}
+      {/* Amount */}
       <div>
-        <label className="block text-sm font-medium text-gray-700 mb-2">
-          <div className="flex items-center">
-            <DollarSign className="h-4 w-4 mr-2" />
-            Amount
-          </div>
-        </label>
+        <label htmlFor="amount" className={labelClass}>Amount</label>
         <div className="relative">
-          <div className="absolute left-3 top-3.5 text-gray-400">
-            <DollarSign className="h-5 w-5" />
-          </div>
+          <DollarSign className="pointer-events-none absolute left-4 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
           <input
+            id="amount"
             type="number"
             value={amount}
             onChange={(e) => setAmount(e.target.value)}
             placeholder="0.00"
             step="0.01"
             min="0"
-            className="w-full px-4 py-3 pl-11 border border-gray-300 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors duration-200"
+            inputMode="decimal"
+            className={`${inputClass} pr-14`}
             required
           />
-          <div className="absolute right-3 top-3.5 text-gray-500">
+          <span className="pointer-events-none absolute right-4 top-1/2 -translate-y-1/2 text-xs font-semibold text-slate-400">
             USD
-          </div>
+          </span>
         </div>
       </div>
 
-      {/* Category Field */}
+      {/* Category */}
       <div>
-        <label className="block text-sm font-medium text-gray-700 mb-2">
-          <div className="flex items-center">
-            <Tag className="h-4 w-4 mr-2" />
-            Category
-          </div>
+        <label className={labelClass}>
+          <Tag className="h-4 w-4" />
+          Category
         </label>
-        <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
-          {categories[type].map((cat) => (
-            <button
-              key={cat}
-              type="button"
-              onClick={() => setCategory(cat)}
-              className={`p-3 rounded-xl border transition-all duration-200 ${
-                category === cat
-                  ? type === 'income'
-                    ? 'bg-green-100 border-green-500 text-green-700'
-                    : 'bg-red-100 border-red-500 text-red-700'
-                  : 'bg-white border-gray-200 text-gray-700 hover:border-gray-300'
-              }`}
-            >
-              <div className={`text-sm font-medium ${category === cat ? 'font-semibold' : ''}`}>
+        <div className="grid grid-cols-2 gap-2 sm:grid-cols-3 lg:grid-cols-2 xl:grid-cols-3">
+          {categories[type].map((cat) => {
+            const active = category === cat;
+            return (
+              <button
+                key={cat}
+                type="button"
+                onClick={() => {
+                  setCategory(cat);
+                  setError('');
+                }}
+                className={`rounded-xl border px-3 py-2.5 text-sm font-medium transition-all duration-200 active:scale-95 ${
+                  active
+                    ? isIncome
+                      ? 'border-emerald-500 bg-emerald-50 font-semibold text-emerald-700 dark:border-emerald-400 dark:bg-emerald-500/15 dark:text-emerald-300'
+                      : 'border-rose-500 bg-rose-50 font-semibold text-rose-700 dark:border-rose-400 dark:bg-rose-500/15 dark:text-rose-300'
+                    : 'border-slate-200 bg-white/70 text-slate-600 hover:border-slate-300 hover:bg-white dark:border-slate-700 dark:bg-slate-800/50 dark:text-slate-300 dark:hover:border-slate-500'
+                }`}
+              >
                 {cat}
-              </div>
-            </button>
-          ))}
+              </button>
+            );
+          })}
         </div>
       </div>
 
-      {/* Submit Button */}
+      {/* Submit */}
       <button
         type="submit"
-        className={`w-full flex items-center justify-center space-x-2 py-4 px-6 rounded-xl font-medium transition-all duration-200 transform hover:scale-[1.02] active:scale-[0.98] ${
-          type === 'income'
-            ? 'bg-gradient-to-r from-green-500 to-emerald-600 hover:from-green-600 hover:to-emerald-700 text-white'
-            : 'bg-gradient-to-r from-red-500 to-rose-600 hover:from-red-600 hover:to-rose-700 text-white'
+        className={`flex w-full items-center justify-center gap-2 rounded-xl px-6 py-3.5 font-semibold text-white shadow-lg transition-all duration-200 hover:scale-[1.02] active:scale-[0.98] focus:outline-none focus:ring-4 ${
+          isIncome
+            ? 'bg-gradient-to-r from-emerald-500 to-teal-600 shadow-emerald-500/30 focus:ring-emerald-500/30'
+            : 'bg-gradient-to-r from-rose-500 to-pink-600 shadow-rose-500/30 focus:ring-rose-500/30'
         }`}
       >
         <PlusCircle className="h-5 w-5" />
-        <span>Add Transaction</span>
+        Add {isIncome ? 'Income' : 'Expense'}
       </button>
 
-      {/* Quick Stats */}
-      <div className="pt-4 border-t border-gray-200">
-        <div className="text-sm text-gray-500">
+      {/* Quick summary */}
+      <div className="space-y-1 border-t border-slate-200 pt-4 text-sm text-slate-500 dark:border-white/10 dark:text-slate-400">
+        <div className="flex justify-between">
+          <span>Selected type</span>
+          <span className={`font-semibold ${isIncome ? 'text-emerald-600 dark:text-emerald-400' : 'text-rose-600 dark:text-rose-400'}`}>
+            {isIncome ? 'Income' : 'Expense'}
+          </span>
+        </div>
+        {amount && (
           <div className="flex justify-between">
-            <span>Selected type:</span>
-            <span className={`font-medium ${type === 'income' ? 'text-green-600' : 'text-red-600'}`}>
-              {type === 'income' ? 'Income' : 'Expense'}
+            <span>Amount</span>
+            <span className={`font-semibold ${isIncome ? 'text-emerald-600 dark:text-emerald-400' : 'text-rose-600 dark:text-rose-400'}`}>
+              ${parseFloat(amount || 0).toFixed(2)}
             </span>
           </div>
-          {amount && (
-            <div className="flex justify-between mt-1">
-              <span>Amount:</span>
-              <span className={`font-medium ${type === 'income' ? 'text-green-600' : 'text-red-600'}`}>
-                ${parseFloat(amount).toFixed(2)}
-              </span>
-            </div>
-          )}
-        </div>
+        )}
       </div>
     </form>
   );
