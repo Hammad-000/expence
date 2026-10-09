@@ -1,30 +1,15 @@
-// src/pages/Dashboard.jsx
 import { useState, useEffect, useMemo } from 'react';
 import { useAuth } from '../context/AuthContext';
 import { useNavigate } from 'react-router-dom';
-import {
-  collection,
-  query,
-  where,
-  onSnapshot,
-  addDoc,
-  deleteDoc,
-  doc,
+import { collection, query, where, onSnapshot,  addDoc, deleteDoc,  doc,
 } from 'firebase/firestore';
 import { db } from '../firebase';
 import TransactionForm from '../components/TransactionForm';
 import TransactionList from '../components/TransactionList';
 import { ThemeToggle } from '../context/ThemeContext';
 import {
-  LogOut,
-  DollarSign,
-  TrendingUp,
-  TrendingDown,
-  Wallet,
-  Plus,
-  Receipt,
-  PiggyBank,
-  Sparkles,
+  LogOut,  DollarSign, TrendingUp,  TrendingDown,  Wallet,  Plus, Receipt,
+  PiggyBank, Sparkles,  AlertCircle,
 } from 'lucide-react';
 
 const money = (n) =>
@@ -41,7 +26,6 @@ const greeting = () => {
   return 'Good evening';
 };
 
-// Shared card style (light + dark)
 const card =
   'rounded-3xl border border-white bg-white/80 shadow-xl shadow-slate-200/60 backdrop-blur transition-colors dark:border-white/10 dark:bg-slate-900/70 dark:shadow-black/30';
 
@@ -50,6 +34,7 @@ export default function Dashboard() {
   const navigate = useNavigate();
   const [transactions, setTransactions] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState('');
 
   useEffect(() => {
     if (!currentUser) return;
@@ -57,10 +42,23 @@ export default function Dashboard() {
       collection(db, 'transactions'),
       where('userId', '==', currentUser.uid)
     );
-    const unsubscribe = onSnapshot(q, (snapshot) => {
-      setTransactions(snapshot.docs.map((d) => ({ id: d.id, ...d.data() })));
-      setLoading(false);
-    });
+    const unsubscribe = onSnapshot(
+      q,
+      (snapshot) => {
+        setTransactions(snapshot.docs.map((d) => ({ id: d.id, ...d.data() })));
+        setError('');
+        setLoading(false);
+      },
+      (err) => {
+        console.error('Firestore error:', err);
+        setError(
+          err.code === 'permission-denied'
+            ? 'Permission denied. Check your Firestore security rules.'
+            : 'Could not load transactions. Check your internet connection.'
+        );
+        setLoading(false);
+      }
+    );
     return () => unsubscribe();
   }, [currentUser]);
 
@@ -112,22 +110,6 @@ export default function Dashboard() {
   const userName = currentUser?.email?.split('@')[0] || 'there';
   const initial = userName.charAt(0).toUpperCase();
   const positive = balance >= 0;
-
-  if (loading) {
-    return (
-      <div className="flex min-h-screen items-center justify-center bg-slate-50 dark:bg-slate-950">
-        <div className="flex flex-col items-center gap-4">
-          <div className="relative h-14 w-14">
-            <div className="absolute inset-0 rounded-full border-4 border-indigo-100 dark:border-slate-800" />
-            <div className="absolute inset-0 animate-spin rounded-full border-4 border-indigo-600 border-t-transparent" />
-          </div>
-          <p className="text-sm font-medium text-slate-500 dark:text-slate-400">
-            Loading your expenses...
-          </p>
-        </div>
-      </div>
-    );
-  }
 
   return (
     <div className="relative min-h-screen overflow-x-hidden bg-slate-50 transition-colors dark:bg-slate-950">
@@ -185,6 +167,12 @@ export default function Dashboard() {
       </header>
 
       <main className="relative z-10 mx-auto max-w-7xl px-4 pb-28 pt-6 sm:px-6 sm:pt-8 lg:px-8 lg:pb-10">
+        {error && (
+          <div className="mb-6 flex items-start gap-2 rounded-2xl border border-rose-200 bg-rose-50 p-4 text-sm text-rose-700 dark:border-rose-500/30 dark:bg-rose-500/10 dark:text-rose-300">
+            <AlertCircle className="mt-0.5 h-4 w-4 shrink-0" />
+            <span>{error}</span>
+          </div>
+        )}
         {/* Hero balance card */}
         <section className="relative overflow-hidden rounded-3xl bg-gradient-to-br from-slate-900 via-indigo-950 to-slate-900 p-6 text-white shadow-2xl shadow-indigo-900/20 ring-1 ring-white/10 sm:p-8">
           <div className="absolute -right-16 -top-16 h-64 w-64 rounded-full bg-indigo-500/30 blur-3xl" />
@@ -202,7 +190,7 @@ export default function Dashboard() {
               <p
                 className={`mt-1 text-4xl font-extrabold tracking-tight sm:text-5xl lg:text-6xl ${
                   positive ? 'text-white' : 'text-amber-300'
-                }`}
+                } ${loading ? 'animate-pulse opacity-50' : ''}`}
               >
                 {money(balance)}
               </p>
@@ -292,7 +280,13 @@ export default function Dashboard() {
                 </div>
               </div>
 
-              {transactions.length > 0 ? (
+              {loading ? (
+                <div className="space-y-3 p-4 sm:p-6">
+                  {[1, 2, 3].map((i) => (
+                    <div key={i} className="h-16 animate-pulse rounded-2xl bg-slate-100 dark:bg-slate-800/60" />
+                  ))}
+                </div>
+              ) : transactions.length > 0 ? (
                 <div className="p-3 sm:p-4">
                   <TransactionList transactions={transactions} onDelete={handleDeleteTransaction} />
                 </div>
