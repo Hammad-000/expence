@@ -1,16 +1,33 @@
+// src/pages/Dashboard.jsx
 import { useState, useEffect, useMemo } from 'react';
 import { useAuth } from '../context/AuthContext';
 import { useNavigate } from 'react-router-dom';
-import { collection, query, where, onSnapshot,  addDoc, deleteDoc,  doc,
+import {
+  collection,
+  query,
+  where,
+  onSnapshot,
+  addDoc,
+  deleteDoc,
+  doc,
 } from 'firebase/firestore';
 import { db } from '../firebase';
 import TransactionForm from '../components/TransactionForm';
 import TransactionList from '../components/TransactionList';
 import { ThemeToggle } from '../context/ThemeContext';
 import {
-  LogOut,  DollarSign, TrendingUp,  TrendingDown,  Wallet,  Plus, Receipt,
-  PiggyBank, Sparkles,  AlertCircle,
+  LogOut,
+  DollarSign,
+  TrendingUp,
+  TrendingDown,
+  Wallet,
+  Plus,
+  Receipt,
+  PiggyBank,
+  Sparkles,
+  AlertCircle,
 } from 'lucide-react';
+import Footer from '../components/Footer';
 
 const money = (n) =>
   new Intl.NumberFormat('en-US', {
@@ -26,6 +43,7 @@ const greeting = () => {
   return 'Good evening';
 };
 
+// Shared card style (light + dark)
 const card =
   'rounded-3xl border border-white bg-white/80 shadow-xl shadow-slate-200/60 backdrop-blur transition-colors dark:border-white/10 dark:bg-slate-900/70 dark:shadow-black/30';
 
@@ -166,7 +184,7 @@ export default function Dashboard() {
         </div>
       </header>
 
-      <main className="relative z-10 mx-auto max-w-7xl px-4 pb-28 pt-6 sm:px-6 sm:pt-8 lg:px-8 lg:pb-10">
+      <main className="relative z-10 mx-auto max-w-7xl px-4 pb-8 pt-6 sm:px-6 sm:pt-8 lg:px-8">
         {error && (
           <div className="mb-6 flex items-start gap-2 rounded-2xl border border-rose-200 bg-rose-50 p-4 text-sm text-rose-700 dark:border-rose-500/30 dark:bg-rose-500/10 dark:text-rose-300">
             <AlertCircle className="mt-0.5 h-4 w-4 shrink-0" />
@@ -305,6 +323,9 @@ export default function Dashboard() {
           </div>
         </section>
       </main>
+
+      {/* Footer */}
+    <Footer />
 
       {/* Mobile floating add button */}
       <a
