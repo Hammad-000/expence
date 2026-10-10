@@ -44,7 +44,7 @@ export function ThemeToggle({ className = '' }) {
       onClick={toggle}
       aria-label={dark ? 'Switch to light mode' : 'Switch to dark mode'}
       title={dark ? 'Light mode' : 'Dark mode'}
-      className={`grid h-10 w-10 place-items-center rounded-xl border border-slate-200 bg-white/80 text-slate-600 shadow-sm backdrop-blur transition hover:scale-105 hover:text-indigo-600 active:scale-95 dark:border-white/10 dark:bg-slate-800/80 dark:text-amber-300 dark:hover:text-amber-200 ${className}`}
+      className={`cursor-pointer grid h-10 w-10 place-items-center rounded-xl border border-slate-200 bg-white/80 text-slate-600 shadow-sm backdrop-blur transition hover:scale-105 hover:text-indigo-600 active:scale-95 dark:border-white/10 dark:bg-slate-800/80 dark:text-amber-300 dark:hover:text-amber-200 ${className}`}
     >
       {dark ? <Sun className="h-5 w-5" /> : <Moon className="h-5 w-5" />}
     </button>

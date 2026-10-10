@@ -1,31 +1,13 @@
-// src/pages/Dashboard.jsx
 import { useState, useEffect, useMemo } from 'react';
 import { useAuth } from '../context/AuthContext';
 import { useNavigate } from 'react-router-dom';
-import {
-  collection,
-  query,
-  where,
-  onSnapshot,
-  addDoc,
-  deleteDoc,
-  doc,
-} from 'firebase/firestore';
-import { db } from '../firebase';
 import TransactionForm from '../components/TransactionForm';
 import TransactionList from '../components/TransactionList';
 import { ThemeToggle } from '../context/ThemeContext';
-import {
-  LogOut,
-  DollarSign,
-  TrendingUp,
-  TrendingDown,
-  Wallet,
-  Plus,
-  Receipt,
-  PiggyBank,
-  Sparkles,
-  AlertCircle,
+import { db } from '../firebase';
+import {collection, query, where, onSnapshot,  addDoc, deleteDoc, doc,
+} from 'firebase/firestore';
+import { LogOut,  DollarSign,  TrendingUp,  TrendingDown, Wallet,  Plus,  Receipt,  PiggyBank,  Sparkles,  AlertCircle,
 } from 'lucide-react';
 import Footer from '../components/Footer';
 
@@ -41,10 +23,16 @@ const greeting = () => {
   if (h >= 5 && h < 12) return 'Good morning';
   if (h >= 12 && h < 17) return 'Good afternoon';
   if (h >= 17 && h < 21) return 'Good evening';
-  return 'Good night'; // 9 PM - 5 AM
+  return 'Good night';
 };
 
-// Shared card style (light + dark)
+const writeError = (err) =>
+  err?.code === 'permission-denied'
+    ? 'Save failed: Firestore rules are blocking this action. Check your security rules.'
+    : err?.code === 'unavailable'
+    ? 'Save failed: cannot reach Firestore. Check your internet connection.'
+    : 'Save failed: ' + (err?.message || 'unknown error');
+
 const card =
   'rounded-3xl border border-white bg-white/80 shadow-xl shadow-slate-200/60 backdrop-blur transition-colors dark:border-white/10 dark:bg-slate-900/70 dark:shadow-black/30';
 
@@ -88,8 +76,10 @@ export default function Dashboard() {
         userId: currentUser.uid,
         createdAt: new Date(),
       });
+      setError('');
     } catch (error) {
       console.error('Error adding transaction:', error);
+      setError(writeError(error));
     }
   }
 
@@ -98,6 +88,7 @@ export default function Dashboard() {
       await deleteDoc(doc(db, 'transactions', id));
     } catch (error) {
       console.error('Error deleting transaction:', error);
+      setError(writeError(error));
     }
   }
 
@@ -175,11 +166,11 @@ export default function Dashboard() {
 
             <button
               onClick={handleLogout}
-              className="inline-flex items-center gap-2 rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm font-semibold text-slate-700 shadow-sm transition hover:border-rose-200 hover:bg-rose-50 hover:text-rose-600 active:scale-95 dark:border-white/10 dark:bg-slate-800 dark:text-slate-200 dark:hover:border-rose-500/40 dark:hover:bg-rose-500/10 dark:hover:text-rose-300 sm:px-4"
+              className="inline-flex items-center gap-2 cursor-pointer rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm font-semibold text-slate-700 shadow-sm transition hover:border-rose-200 hover:bg-rose-50 hover:text-rose-600 active:scale-95 dark:border-white/10 dark:bg-slate-800 dark:text-slate-200 dark:hover:border-rose-500/40 dark:hover:bg-rose-500/10 dark:hover:text-rose-300 sm:px-4"
               aria-label="Logout"
             >
               <LogOut className="h-4 w-4" />
-              <span className="hidden sm:inline">Logout</span>
+              <span className="hidden sm:inline  ">Logout</span>
             </button>
           </div>
         </div>
@@ -326,7 +317,7 @@ export default function Dashboard() {
       </main>
 
       {/* Footer */}
-      < Footer />
+     <Footer />
 
       {/* Mobile floating add button */}
       <a
